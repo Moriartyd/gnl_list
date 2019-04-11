@@ -6,11 +6,15 @@
 /*   By: cpollich <cpollich@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2019/02/19 11:19:21 by moriarty          #+#    #+#             */
-/*   Updated: 2019/04/08 20:47:43 by cpollich         ###   ########.fr       */
+/*   Updated: 2019/04/11 20:00:22 by cpollich         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "get_next_line.h"
+
+/*
+**	Удаляет статическую переменную
+*/
 
 static int		ft_lstdelfile(t_list **head, int fd)
 {
@@ -41,6 +45,10 @@ static int		ft_lstdelfile(t_list **head, int fd)
 	return (0);
 }
 
+/*
+**	Создает статическую переменную
+*/
+
 static t_list	*t_list_create_file(int fd)
 {
 	t_list	*res;
@@ -58,6 +66,10 @@ static t_list	*t_list_create_file(int fd)
 	res->next = NULL;
 	return (res);
 }
+
+/*
+**	Поиск статической переменной
+*/
 
 static t_list	*get_file(int fd, t_list **head)
 {
@@ -79,18 +91,24 @@ static t_list	*get_file(int fd, t_list **head)
 	return (now);
 }
 
-static int		fillin_line(char **line, char *tmp, t_list *file, t_list **start)
+/*
+**	Запись в *line
+*/
+
+static int		fillin_line(char **line, char *tmp,
+		t_list *file, t_list **start)
 {
 	size_t	len;
 	char	*strchr_tmp;
 	char	*removen;
 
 	len = ft_strlen(tmp);
-	free(file->content);
+	ft_strdel((char **)&file->content);
 	if (!tmp)
 		return (-1);
-	tmp ? (strchr_tmp = ft_strchr(tmp, '\n')) : (strchr_tmp = NULL);
-	strchr_tmp ? (len = strchr_tmp - tmp) : (len = ft_strlen(tmp));
+	tmp ? (strchr_tmp = ft_strchr(tmp, '\n')) : (0);
+	!tmp ? (strchr_tmp = NULL) : (0);
+	strchr_tmp ? (len = strchr_tmp - tmp) : (0);
 	*line = ft_strnew(len);
 	*line = ft_strncpy(*line, tmp, len);
 	if (strchr_tmp)
@@ -98,10 +116,11 @@ static int		fillin_line(char **line, char *tmp, t_list *file, t_list **start)
 		removen = ft_strdup(strchr_tmp + 1);
 		ft_strdel(&tmp);
 		file->content = removen;
+		if (!*line || (!**line && !strchr_tmp) || !file->content)
+			return (ft_lstdelfile(start, file->content_size));
 	}
-	if (!file->content || ! *line)
-		return (ft_lstdelfile(start, file->content_size));
-	return (1);
+	return ((!*line || (!**line && !strchr_tmp)) ?
+	(ft_lstdelfile(start, file->content_size)) : (1));
 }
 
 int				get_next_line(const int fd, char **line)
@@ -118,16 +137,13 @@ int				get_next_line(const int fd, char **line)
 	file = get_file(fd, &start);
 	if (!file)
 		return (-1);
-	while ((len = read(fd, buf, BUFF_SIZE)) > 0 || 
-		(file->content && ((char *)file->content)[0]))
+	while ((len = read(fd, buf, BUFF_SIZE)) > 0 ||
+		(file->content && (char **)&file->content[0]))
 	{
 		buf[len] = '\0';
 		t = ft_strjoin(file->content, buf);
-		ft_putstr(t);
-	ft_putchar('\n');
-		if (t && (ft_strchr(t, '\n') || ((!ft_strchr(t, '\n') && len <= 0))))
+		if ((t && ft_strchr(t, '\n')) || len <= 0)
 			return (fillin_line(line, t, file, &start));
-		ft_putstr("im here\n");
 		free(file->content);
 		file->content = t;
 		if (!file->content)
